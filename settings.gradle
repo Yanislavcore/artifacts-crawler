@@ -1,0 +1,3 @@
+rootProject.name = 'artifacts_crawler'
+include 'crawler'
+
