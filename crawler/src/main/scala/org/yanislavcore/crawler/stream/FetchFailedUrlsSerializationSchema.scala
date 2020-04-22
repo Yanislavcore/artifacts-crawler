@@ -11,7 +11,7 @@ import org.yanislavcore.crawler.data.{FailedUrlData, ScheduledUrlData}
 
 class FetchFailedUrlsSerializationSchema(private val topic: String)
   extends KafkaSerializationSchema[FailedUrlData]
-    with KafkaContextAware[ScheduledUrlData] {
+    with KafkaContextAware[FailedUrlData] {
 
   private lazy val objectMapper = new ObjectMapper().registerModule(DefaultScalaModule)
 
@@ -22,7 +22,7 @@ class FetchFailedUrlsSerializationSchema(private val topic: String)
     new ProducerRecord(topic, key, value)
   }
 
-  override def getTargetTopic(element: ScheduledUrlData): String = topic
+  override def getTargetTopic(element: FailedUrlData): String = topic
 }
 
 object FetchFailedUrlsSerializationSchema {

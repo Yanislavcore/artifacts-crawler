@@ -23,7 +23,8 @@ class FetchSuccessSplitter
         identity,
         { success => FetchFailure("Response code: " + success.code) }
       )
-      ctx.output(FlinkHelpers.FetchFailedTag, FailedUrlData(value._1.url, value._1.ignoreExternalUrls, failure.msg))
+      ctx.output(FlinkHelpers.FetchFailedTag,
+        FailedUrlData(value._1.url, value._1.ignoreExternalUrls, failure.msg))
     }
   }
 }
