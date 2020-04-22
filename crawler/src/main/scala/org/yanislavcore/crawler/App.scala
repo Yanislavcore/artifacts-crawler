@@ -4,28 +4,14 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
-import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer}
-import org.yanislavcore.crawler.data.{FetchFailure, FetchSuccess, ScheduledUrlData}
+import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
+import org.yanislavcore.crawler.FlinkHelpers._
 import org.yanislavcore.crawler.service.{AerospikeMetGloballyRepository, CacheMetLocallyRepository, HttpFetchService}
 import org.yanislavcore.crawler.stream._
 import pureconfig._
 
 object App {
-
-  /** Type Information, required by Flink */
-  private implicit val scheduledUrlTypeInfo: TypeInformation[ScheduledUrlData] =
-    ScheduledUrlDeserializer.getProducedType
-  private implicit val fetchedDataTypeInfo: TypeInformation[(ScheduledUrlData, Either[FetchFailure, FetchSuccess])] =
-    UrlFetchMapper.getProducedType
-  private implicit val successFetchTypeInfo: TypeInformation[(ScheduledUrlData, FetchSuccess)] =
-    TypeExtractor.getForClass(classOf[(ScheduledUrlData, FetchSuccess)])
-  private implicit val stringTypeInfo: TypeInformation[String] =
-    TypeExtractor.getForClass(classOf[String])
-  private implicit val clusterCheckerTypeInfo: TypeInformation[(ScheduledUrlData, Boolean)] =
-    MetGloballyChecker.getProducedType
 
   @throws[Exception]
   def main(args: Array[String]): Unit = {
@@ -46,22 +32,19 @@ object App {
       TimeUnit.MILLISECONDS
     )
       .name("HtmlFetcher")
+      .process(FetchSuccessSplitter())
+      .name("FetchSuccessSplitter")
 
-    //Filtering and crawling urls
+    //Unsuccessful
+    fetchedStream
+      .getSideOutput(FetchFailedTag)
+      .addSink(kafkaSink(cfg, cfg.quarantineUrlsTopic, FetchFailedUrlsSerializationSchema(cfg.quarantineUrlsTopic)))
+
+    //Filtering and crawling successful urls
     val notMetLocallyUrls = fetchedStream
-      .filter { value =>
-        val f = value._2
-        f.isRight && f.getOrElse(null).code / 100 == 2
-      }
-      .name("SuccessFilter")
-      .map { value =>
-        //Never will be null
-        (value._1, value._2.getOrElse(null))
-      }
-      .name("FailureMetaEraser")
       .flatMap(UrlsCollector(cfg))
       .name("UrlsCollect")
-      //Filtering already met
+      //Filtering already met locally
       .filter(LocalCacheFilter(CacheMetLocallyRepository))
       .name("LocalCacheFilter")
 
@@ -77,20 +60,19 @@ object App {
       .name("ClusterMetMetaFilter")
       .map { value => value._1 }
       .name("ClusterMetMetaEraser")
+      //Splitting on artifacts and not artifacts
+      .process(ApkMirrorArtifactsSplitter())
 
     // ===== Non-artifacts =====
     notMetUrls
-      .filter(ApkMirrorArtifactsFilter(shouldSkipMatched = true))
-      .name("NonArtifactsFilter")
-      .addSink(kafkaSink(cfg, cfg.urlsTopic))
+      .addSink(kafkaSink(cfg, cfg.urlsTopic, ScheduledUrlSerializationSchema(cfg.urlsTopic)))
       .name("NonArtifactsSink")
 
     // ===== Artifacts =====
 
     notMetUrls
-      .filter(ApkMirrorArtifactsFilter(shouldSkipMatched = false))
-      .name("ArtifactsFilter")
-      .addSink(kafkaSink(cfg, cfg.artifactsTopic))
+      .getSideOutput(ArtifactTag)
+      .addSink(kafkaSink(cfg, cfg.artifactsTopic, ScheduledUrlSerializationSchema(cfg.artifactsTopic)))
       .name("ArtifactsSink")
 
 
@@ -115,11 +97,13 @@ object App {
     )
   }
 
-  def kafkaSink(cfg: CrawlerConfig, topic: String): FlinkKafkaProducer[ScheduledUrlData] = {
+  def kafkaSink[T](cfg: CrawlerConfig,
+                   topic: String,
+                   schema: KafkaSerializationSchema[T]): FlinkKafkaProducer[T] = {
     val props = getKafkaProps(cfg)
     val producer = new FlinkKafkaProducer(
       topic,
-      ScheduledUrlSerializationSchema(topic),
+      schema,
       props,
       FlinkKafkaProducer.Semantic.AT_LEAST_ONCE,
       cfg.maxProducers

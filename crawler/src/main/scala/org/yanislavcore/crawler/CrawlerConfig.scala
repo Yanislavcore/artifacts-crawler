@@ -4,6 +4,7 @@ import scala.concurrent.duration.Duration
 
 case class CrawlerConfig(kafkaOptions: Map[String, String],
                          urlsTopic: String,
+                         quarantineUrlsTopic: String,
                          maxProducers: Int,
                          artifactsTopic: String,
                          fetcher: FetcherConfig,

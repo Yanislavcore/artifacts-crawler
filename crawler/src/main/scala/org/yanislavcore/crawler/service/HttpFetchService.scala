@@ -18,6 +18,7 @@ object HttpFetchService extends FetchService {
   private lazy val client: AsyncHttpClient = {
     val cfg = ConfigFactory.load().getConfig("fetcher")
     val clientCfg = config()
+      .setFollowRedirect(true)
       .setIoThreadsCount(cfg.getInt("threads"))
       .setRequestTimeout(cfg.getDuration("timeout").toMillis.toInt)
     asyncHttpClient(clientCfg)
