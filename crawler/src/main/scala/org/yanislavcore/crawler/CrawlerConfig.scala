@@ -8,7 +8,6 @@ case class CrawlerConfig(kafkaOptions: Map[String, String],
                          artifactsTopic: String,
                          fetcher: FetcherConfig,
                          ignoredExtensions: List[String],
-                         targetExtensions: List[String],
                          localCache: LocalCacheConfig,
                          clusterCache: ClusterCacheConfig)
 

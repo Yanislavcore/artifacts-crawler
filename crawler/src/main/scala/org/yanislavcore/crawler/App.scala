@@ -48,7 +48,7 @@ object App {
       .name("HtmlFetcher")
 
     //Filtering and crawling urls
-    val notMetLocalyUrls = fetchedStream
+    val notMetLocallyUrls = fetchedStream
       .filter { value =>
         val f = value._2
         f.isRight && f.getOrElse(null).code / 100 == 2
@@ -67,7 +67,7 @@ object App {
 
     //Filtering on cluster
     val notMetUrls = AsyncDataStream.unorderedWait(
-      notMetLocalyUrls,
+      notMetLocallyUrls,
       ClusterCacheChecker(AerospikeClusterMetRepository),
       cfg.clusterCache.timeout.toMillis,
       TimeUnit.MILLISECONDS,
@@ -80,7 +80,7 @@ object App {
 
     // ===== Non-artifacts =====
     notMetUrls
-      .filter(TargetExtensionsFilter(shouldSkipMatched = true, cfg = cfg))
+      .filter(ApkMirrorArtifactsFilter(shouldSkipMatched = true))
       .name("NonArtifactsFilter")
       .addSink(kafkaSink(cfg, cfg.urlsTopic))
       .name("NonArtifactsSink")
@@ -88,7 +88,7 @@ object App {
     // ===== Artifacts =====
 
     notMetUrls
-      .filter(TargetExtensionsFilter(shouldSkipMatched = false, cfg = cfg))
+      .filter(ApkMirrorArtifactsFilter(shouldSkipMatched = false))
       .name("ArtifactsFilter")
       .addSink(kafkaSink(cfg, cfg.artifactsTopic))
       .name("ArtifactsSink")
@@ -130,7 +130,7 @@ object App {
 
   def getKafkaProps(cfg: CrawlerConfig): Properties = {
     val props = new Properties()
-    //https://github.com/scala/bug/issues/10418 , workaround:
+    //Bug in scala with JDK 9+ and putAll(): https://github.com/scala/bug/issues/10418 , workaround:
     cfg.kafkaOptions.foreach { case (key, value) => props.put(key, value) }
     props
   }
