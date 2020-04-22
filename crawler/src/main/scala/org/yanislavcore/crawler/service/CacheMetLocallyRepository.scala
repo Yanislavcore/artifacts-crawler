@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 /**
  * As long as we need to create only one cache per JVM, this class encapsulates cache inside lazy field.
  */
-object CacheLocalMetRepository extends LocalMetRepository {
+object CacheMetLocallyRepository extends MetLocallyRepository {
   //It's better to use Set instead of Map, but this cache doesn't support it.
   //That's why we are storing one string/reference for all entries, in order to reduce overhead
   private val valueHolder: String = ""

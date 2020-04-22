@@ -9,7 +9,7 @@ import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer}
 import org.yanislavcore.crawler.data.{FetchFailure, FetchSuccess, ScheduledUrlData}
-import org.yanislavcore.crawler.service.{AerospikeClusterMetRepository, CacheLocalMetRepository, HttpFetchService}
+import org.yanislavcore.crawler.service.{AerospikeMetGloballyRepository, CacheMetLocallyRepository, HttpFetchService}
 import org.yanislavcore.crawler.stream._
 import pureconfig._
 
@@ -25,7 +25,7 @@ object App {
   private implicit val stringTypeInfo: TypeInformation[String] =
     TypeExtractor.getForClass(classOf[String])
   private implicit val clusterCheckerTypeInfo: TypeInformation[(ScheduledUrlData, Boolean)] =
-    ClusterCacheChecker.getProducedType
+    MetGloballyChecker.getProducedType
 
   @throws[Exception]
   def main(args: Array[String]): Unit = {
@@ -43,7 +43,7 @@ object App {
       scheduledUrlsStream,
       UrlFetchMapper(HttpFetchService),
       cfg.fetcher.timeout.toMillis,
-      TimeUnit.MILLISECONDS,
+      TimeUnit.MILLISECONDS
     )
       .name("HtmlFetcher")
 
@@ -62,13 +62,13 @@ object App {
       .flatMap(UrlsCollector(cfg))
       .name("UrlsCollect")
       //Filtering already met
-      .filter(LocalCacheFilter(CacheLocalMetRepository))
+      .filter(LocalCacheFilter(CacheMetLocallyRepository))
       .name("LocalCacheFilter")
 
     //Filtering on cluster
     val notMetUrls = AsyncDataStream.unorderedWait(
       notMetLocallyUrls,
-      ClusterCacheChecker(AerospikeClusterMetRepository),
+      MetGloballyChecker(AerospikeMetGloballyRepository),
       cfg.clusterCache.timeout.toMillis,
       TimeUnit.MILLISECONDS,
     )

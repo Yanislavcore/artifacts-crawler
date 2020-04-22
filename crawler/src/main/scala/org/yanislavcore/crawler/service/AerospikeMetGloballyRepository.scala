@@ -1,15 +1,18 @@
 package org.yanislavcore.crawler.service
-import com.aerospike.client.{AerospikeClient, AerospikeException, Key, Record}
+
 import com.aerospike.client.async.NettyEventLoops
 import com.aerospike.client.listener.RecordListener
-import com.aerospike.client.policy.{ClientPolicy, WritePolicy}
+import com.aerospike.client.policy.ClientPolicy
+import com.aerospike.client._
 import com.typesafe.config.ConfigFactory
 import io.netty.channel.epoll.EpollEventLoopGroup
 import io.netty.channel.nio.NioEventLoopGroup
 
+import scala.collection.JavaConverters._
 import scala.concurrent.{Future, Promise}
 
-object AerospikeClusterMetRepository extends ClusterMetRepository {
+
+object AerospikeMetGloballyRepository extends MetGloballyRepository {
 
   private lazy val cfg = ConfigFactory.load().getConfig("cluster-cache")
   private lazy val as: AerospikeClient = {
@@ -25,10 +28,12 @@ object AerospikeClusterMetRepository extends ClusterMetRepository {
     val timeout = cfg.getDuration("timeout").toMillis.toInt
     p.writePolicyDefault.totalTimeout = timeout
     p.readPolicyDefault.totalTimeout = timeout
-    new AerospikeClient(p)
+    val hosts = Host.parseHosts(cfg.getString("hosts"), 3000)
+    new AerospikeClient(p, hosts:_*)
   }
   private lazy val ns = cfg.getString("ns")
   private lazy val set = cfg.getString("set")
+
   /**
    * Check if URL is already met and puts it again
    */

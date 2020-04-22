@@ -6,15 +6,15 @@ import org.apache.flink.runtime.concurrent.Executors
 import org.apache.flink.streaming.api.scala.async.{AsyncFunction, ResultFuture}
 import org.slf4j.LoggerFactory
 import org.yanislavcore.crawler.data.ScheduledUrlData
-import org.yanislavcore.crawler.service.ClusterMetRepository
+import org.yanislavcore.crawler.service.MetGloballyRepository
 
 import scala.concurrent.ExecutionContext
 
-class ClusterCacheChecker(private val repo: ClusterMetRepository)
+class MetGloballyChecker(private val repo: MetGloballyRepository)
   extends AsyncFunction[ScheduledUrlData, (ScheduledUrlData, Boolean)] {
 
-  private val log = LoggerFactory.getLogger(classOf[ClusterCacheChecker])
-  private implicit val ex: ExecutionContext = ExecutionContext.fromExecutor(Executors.directExecutor())
+  private val log = LoggerFactory.getLogger(classOf[MetGloballyChecker])
+  private lazy implicit val ex: ExecutionContext = ExecutionContext.fromExecutor(Executors.directExecutor())
 
   override def asyncInvoke(input: ScheduledUrlData, resultFuture: ResultFuture[(ScheduledUrlData, Boolean)]): Unit = {
     repo.checkAndPut(input.url).onComplete { result =>
@@ -33,8 +33,8 @@ class ClusterCacheChecker(private val repo: ClusterMetRepository)
   }
 }
 
-object ClusterCacheChecker {
-  def apply(repo: ClusterMetRepository): ClusterCacheChecker = new ClusterCacheChecker(repo)
+object MetGloballyChecker {
+  def apply(repo: MetGloballyRepository): MetGloballyChecker = new MetGloballyChecker(repo)
 
   def getProducedType: TypeInformation[(ScheduledUrlData, Boolean)] = {
     getForClass(classOf[(ScheduledUrlData, Boolean)])

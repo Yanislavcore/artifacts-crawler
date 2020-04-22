@@ -1,6 +1,6 @@
 package org.yanislavcore.crawler.service
 
-trait LocalMetRepository extends Serializable {
+trait MetLocallyRepository extends Serializable {
   /**
    * Check if URL is already met and puts it again
    */
