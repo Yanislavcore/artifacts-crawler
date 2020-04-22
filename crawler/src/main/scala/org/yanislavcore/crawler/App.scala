@@ -34,6 +34,7 @@ object App {
 
     //Reading from Kafka
     val scheduledUrlsStream = kafkaSource(env, cfg)
+      .name("ScheduledUrlsSource")
       .map(ScheduledUrlDeserializer())
       .name("parser")
 
@@ -44,6 +45,7 @@ object App {
       cfg.fetcher.timeout.toMillis,
       TimeUnit.MILLISECONDS,
     )
+      .name("HtmlFetcher")
 
     //Filtering and crawling urls
     val notMetLocalyUrls = fetchedStream
@@ -56,7 +58,7 @@ object App {
         //Never will be null
         (value._1, value._2.getOrElse(null))
       }
-      .name("SuccessTransformer")
+      .name("FailureMetaEraser")
       .flatMap(UrlsCollector(cfg))
       .name("UrlsCollect")
       //Filtering already met
@@ -70,15 +72,18 @@ object App {
       cfg.clusterCache.timeout.toMillis,
       TimeUnit.MILLISECONDS,
     )
+      .name("ClusterMetMetaEnricher")
       .filter { value => !value._2 }
+      .name("ClusterMetMetaFilter")
       .map { value => value._1 }
+      .name("ClusterMetMetaEraser")
 
     // ===== Non-artifacts =====
     notMetUrls
       .filter(TargetExtensionsFilter(shouldSkipMatched = true, cfg = cfg))
       .name("NonArtifactsFilter")
       .addSink(kafkaSink(cfg, cfg.urlsTopic))
-        .name("NonArtifactsSink")
+      .name("NonArtifactsSink")
 
     // ===== Artifacts =====
 
