@@ -103,6 +103,7 @@ object App {
 
   @throws[Exception]
   def getConfig: CrawlerConfig = {
+    import pureconfig.generic.auto._
     ConfigSource.default.load[CrawlerConfig].fold(
       e => throw new RuntimeException("Failed to parse config. Failures: " ++ e.prettyPrint()),
       cfg => cfg
