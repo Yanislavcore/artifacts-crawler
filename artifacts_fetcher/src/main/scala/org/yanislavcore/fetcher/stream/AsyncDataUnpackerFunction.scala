@@ -34,7 +34,7 @@ class AsyncDataUnpackerFunction(private val cfg: ArtifactsFetcherConfig,
       val fileName = new URL(fetched.url).getPath.split("/").last
       writer.writeFile(fetched.body, unpackerCfg.targetDir, fileName)
       val fullPath = unpackerCfg.targetDir + "/" + fileName
-      val unpackedDir = "_" + fullPath
+      val unpackedDir = unpackerCfg.targetDir + "/_unpacked_" + fileName
       val metadata = unzipService.unzip(fullPath, unpackedDir)
       ArchiveMetadata(metadata, fullPath, unpackedDir)
     }

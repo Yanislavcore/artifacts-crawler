@@ -1,6 +1,5 @@
 package org.yanislavcore.common.service
 
-import java.net.URL
 import java.util
 import java.util.concurrent.{Executor, ThreadLocalRandom}
 
@@ -20,7 +19,7 @@ object HttpFetchService extends FetchService {
 
   //noinspection UnstableApiUsage
   private lazy val uaPool: util.ArrayList[String] = {
-    val lines = Resources.readLines(new URL("userAgentsPool.txt"), Charsets.UTF_8)
+    val lines = Resources.readLines(Resources.getResource("userAgentsPool.txt"), Charsets.UTF_8)
     //Moved to Arraylist just to be sure
     new util.ArrayList[String](lines)
   }

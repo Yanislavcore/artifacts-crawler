@@ -50,11 +50,18 @@ object App {
       .process(DataUnpackerResultSplitter())
       .name("DataUnpackResultSplitter")
 
-    //Failed to fetch or unpack
+    //Failed to fetch
+    val failedSink = kafkaSink(cfg, cfg.quarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.quarantineArtifactsTopic))
     fetchedStream
       .getSideOutput(FetchSuccessSplitter.FetchFailedTag)
-      .addSink(kafkaSink(cfg, cfg.quarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.quarantineArtifactsTopic)))
+      .addSink(failedSink)
       .name("FetchFailedArtifacts")
+
+    //Failed to unpack
+    unpackedStream
+      .getSideOutput(DataUnpackerResultSplitter.UnpackFailedTag)
+      .addSink(failedSink)
+      .name("UnpackFailedArtifacts")
 
     //TODO Just logs metadata. You need to setup your own metadata sink
     unpackedStream

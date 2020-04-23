@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigFactory
 
 object IoExecutorServiceHolder extends ExecutorServiceHolder {
   private lazy val es = {
-    val threadsNumber = ConfigFactory.load().getInt("fetcher.file-io-threads")
+    val threadsNumber = ConfigFactory.load().getInt("unpacker.file-io-threads")
     Executors.newFixedThreadPool(threadsNumber)
   }
 

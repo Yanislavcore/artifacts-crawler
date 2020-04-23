@@ -12,6 +12,5 @@ case class ArtifactsFetcherConfig(fetcher: FetcherConfig,
 case class FetcherConfig(threads: Int, timeout: Duration)
 
 case class UnpackerConfig(targetDir: String,
-                          metaDataFile: String,
                           fileIoThreads: Int,
                           timeout: Duration)
