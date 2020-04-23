@@ -10,15 +10,16 @@ import org.apache.flink.api.java.typeutils.TypeExtractor.getForClass
 import org.apache.flink.util.Collector
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
-import org.yanislavcore.common.data.{FetchSuccessData, ScheduledUrlData}
-import org.yanislavcore.crawler.{CrawlerConfig, Utils}
+import org.yanislavcore.common.Utils
+import org.yanislavcore.common.data.{FetchedData, ScheduledUrlData}
+import org.yanislavcore.crawler.CrawlerConfig
 
 import scala.util.Try
 
-class UrlsCollector(cfg: CrawlerConfig) extends FlatMapFunction[(ScheduledUrlData, FetchSuccessData), ScheduledUrlData] {
+class UrlsCollector(cfg: CrawlerConfig) extends FlatMapFunction[(ScheduledUrlData, FetchedData), ScheduledUrlData] {
   private val ignoredExtensions = cfg.ignoredExtensions.toSet
 
-  override def flatMap(value: (ScheduledUrlData, FetchSuccessData), out: Collector[ScheduledUrlData]): Unit = {
+  override def flatMap(value: (ScheduledUrlData, FetchedData), out: Collector[ScheduledUrlData]): Unit = {
     //noinspection UnstableApiUsage
     if (!MediaType.parse(value._2.contentType).equals(MediaType.HTML_UTF_8)) {
       return
@@ -64,7 +65,7 @@ class UrlsCollector(cfg: CrawlerConfig) extends FlatMapFunction[(ScheduledUrlDat
     ignoredExtensions.contains(split.last)
   }
 
-  private def parseElements(value: (ScheduledUrlData, FetchSuccessData), baseUrl: String): Elements = {
+  private def parseElements(value: (ScheduledUrlData, FetchedData), baseUrl: String): Elements = {
     //Skipping if not valid HTML
     Try {
       val data = value._2.body

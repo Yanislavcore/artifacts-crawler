@@ -3,11 +3,11 @@ package org.yanislavcore.crawler
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
-import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
+import org.yanislavcore.common.data.ScheduledUrlData
 import org.yanislavcore.common.service.HttpFetchService
-import org.yanislavcore.common.stream.{AsyncUrlFetchFunction, FetchSuccessSplitter}
+import org.yanislavcore.common.stream.{AsyncUrlFetchFunction, FetchFailureSerializationSchema, FetchSuccessSplitter, ScheduledUrlDeserializationSchema}
 import org.yanislavcore.crawler.FlinkHelpers._
 import org.yanislavcore.crawler.service.{AerospikeMetGloballyRepository, CacheMetLocallyRepository}
 import org.yanislavcore.crawler.stream._
@@ -18,13 +18,11 @@ object App {
   @throws[Exception]
   def main(args: Array[String]): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val cfg = getConfig
+    val cfg = parseConfig
 
     //Reading from Kafka
     val scheduledUrlsStream = kafkaSource(env, cfg)
       .name("ScheduledUrlsSource")
-      .map(ScheduledUrlDeserializer())
-      .name("parser")
 
     //Fetching
     val fetchedStream = AsyncDataStream.unorderedWait(
@@ -82,16 +80,15 @@ object App {
   }
 
 
-  def kafkaSource(env: StreamExecutionEnvironment, cfg: CrawlerConfig): DataStream[String] = {
+  def kafkaSource(env: StreamExecutionEnvironment, cfg: CrawlerConfig): DataStream[ScheduledUrlData] = {
     val props = getKafkaProps(cfg)
-    val schema = new SimpleStringSchema()
+    val schema = new ScheduledUrlDeserializationSchema()
     val source = new FlinkKafkaConsumer(cfg.urlsTopic, schema, props)
     env.addSource(source)(schema.getProducedType)
-      .name("ScheduledUrlConsumer")
   }
 
   @throws[Exception]
-  def getConfig: CrawlerConfig = {
+  def parseConfig: CrawlerConfig = {
     import pureconfig.generic.auto._
     ConfigSource.default.load[CrawlerConfig].fold(
       e => throw new RuntimeException("Failed to parse config. Failures: " ++ e.prettyPrint()),

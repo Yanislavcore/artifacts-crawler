@@ -9,7 +9,7 @@ import com.google.common.io.Resources
 import com.typesafe.config.ConfigFactory
 import org.asynchttpclient.Dsl.{asyncHttpClient, config}
 import org.asynchttpclient.{AsyncHttpClient, RequestBuilder}
-import org.yanislavcore.common.data.FetchSuccessData
+import org.yanislavcore.common.data.FetchedData
 
 import scala.concurrent.{Future, Promise}
 
@@ -40,20 +40,21 @@ object HttpFetchService extends FetchService {
     asyncHttpClient(clientCfg)
   }
 
-  override def fetch(url: String)(implicit ex: Executor): Future[FetchSuccessData] = {
+  override def fetch(url: String)(implicit ex: Executor): Future[FetchedData] = {
     val req = new RequestBuilder()
       .setMethod("GET")
       .setHeader("user-agent", nextUserAgent())
       .setUrl(url)
-    val promise = Promise[FetchSuccessData]()
+    val promise = Promise[FetchedData]()
     val resp = client.executeRequest(req)
     resp.addListener(() => {
       try {
         val result = resp.get()
-        promise success FetchSuccessData(
+        promise success FetchedData(
           result.getStatusCode,
           result.getResponseBodyAsBytes,
-          result.getContentType
+          result.getContentType,
+          url = result.getUri.toUrl
         )
       } catch {
         case _: Throwable => promise failure _

@@ -5,21 +5,21 @@ import org.apache.flink.api.java.typeutils.TypeExtractor.getForClass
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.flink.util.Collector
-import org.yanislavcore.common.data.{FailedUrlData, FetchFailureData, FetchSuccessData, ScheduledUrlData}
+import org.yanislavcore.common.data.{FailedUrlData, FetchedData, ScheduledUrlData, UrlProcessFailure}
 
 class FetchSuccessSplitter
-  extends ProcessFunction[(ScheduledUrlData, Either[FetchFailureData, FetchSuccessData]), (ScheduledUrlData, FetchSuccessData)] {
+  extends ProcessFunction[(ScheduledUrlData, Either[UrlProcessFailure, FetchedData]), (ScheduledUrlData, FetchedData)] {
 
-  override def processElement(value: (ScheduledUrlData, Either[FetchFailureData, FetchSuccessData]),
-                              ctx: ProcessFunction[(ScheduledUrlData, Either[FetchFailureData, FetchSuccessData]), (ScheduledUrlData, FetchSuccessData)]#Context,
-                              out: Collector[(ScheduledUrlData, FetchSuccessData)]): Unit = {
+  override def processElement(value: (ScheduledUrlData, Either[UrlProcessFailure, FetchedData]),
+                              ctx: ProcessFunction[(ScheduledUrlData, Either[UrlProcessFailure, FetchedData]), (ScheduledUrlData, FetchedData)]#Context,
+                              out: Collector[(ScheduledUrlData, FetchedData)]): Unit = {
     val either = value._2
     if (either.isRight && either.getOrElse(null).code / 100 == 2) {
       out.collect((value._1, value._2.right.get))
     } else {
-      val failure: FetchFailureData = either.fold(
+      val failure: UrlProcessFailure = either.fold(
         identity,
-        { success => FetchFailureData("Response code: " + success.code) }
+        { success => UrlProcessFailure("Response code: " + success.code) }
       )
       ctx.output(
         FetchSuccessSplitter.FetchFailedTag,

@@ -1,4 +1,4 @@
-package org.yanislavcore.crawler.stream
+package org.yanislavcore.common.stream
 
 import java.lang
 

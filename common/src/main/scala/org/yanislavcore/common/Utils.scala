@@ -1,4 +1,4 @@
-package org.yanislavcore.crawler
+package org.yanislavcore.common
 
 import java.net.URL
 
@@ -7,7 +7,9 @@ import scala.util.control.NonFatal
 
 object Utils {
 
-  def tryUrl(urlString: String): Try[URL] = Try { new URL(urlString) }
+  def tryUrl(urlString: String): Try[URL] = Try {
+    new URL(urlString)
+  }
 
   def withResources[T <: AutoCloseable, V](r: => T)(f: T => V): V = {
     val resource: T = r
