@@ -1,12 +1,15 @@
-package org.yanislavcore.crawler.service
+package org.yanislavcore.common.service
 
+import java.net.URL
+import java.util
+import java.util.concurrent.{Executor, ThreadLocalRandom}
 
-import java.util.concurrent.Executor
-
+import com.google.common.base.Charsets
+import com.google.common.io.Resources
 import com.typesafe.config.ConfigFactory
 import org.asynchttpclient.Dsl.{asyncHttpClient, config}
 import org.asynchttpclient.{AsyncHttpClient, RequestBuilder}
-import org.yanislavcore.crawler.data.FetchSuccess
+import org.yanislavcore.common.data.FetchSuccessData
 
 import scala.concurrent.{Future, Promise}
 
@@ -14,6 +17,19 @@ import scala.concurrent.{Future, Promise}
  * As long as we need to create only one client per JVM, this class encapsulates http client inside lazy field.
  */
 object HttpFetchService extends FetchService {
+
+  //noinspection UnstableApiUsage
+  private lazy val uaPool: util.ArrayList[String] = {
+    val lines = Resources.readLines(new URL("userAgentsPool.txt"), Charsets.UTF_8)
+    //Moved to Arraylist just to be sure
+    new util.ArrayList[String](lines)
+  }
+  private lazy val poolSize = uaPool.size()
+
+  private def nextUserAgent(): String = {
+    val nextElement = ThreadLocalRandom.current().nextInt(0, poolSize)
+    uaPool.get(nextElement)
+  }
 
   private lazy val client: AsyncHttpClient = {
     val cfg = ConfigFactory.load().getConfig("fetcher")
@@ -24,16 +40,17 @@ object HttpFetchService extends FetchService {
     asyncHttpClient(clientCfg)
   }
 
-  override def fetch(url: String)(implicit ex: Executor): Future[FetchSuccess] = {
+  override def fetch(url: String)(implicit ex: Executor): Future[FetchSuccessData] = {
     val req = new RequestBuilder()
       .setMethod("GET")
+      .setHeader("user-agent", nextUserAgent())
       .setUrl(url)
-    val promise = Promise[FetchSuccess]()
+    val promise = Promise[FetchSuccessData]()
     val resp = client.executeRequest(req)
     resp.addListener(() => {
       try {
         val result = resp.get()
-        promise success FetchSuccess(
+        promise success FetchSuccessData(
           result.getStatusCode,
           result.getResponseBodyAsBytes,
           result.getContentType

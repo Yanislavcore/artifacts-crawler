@@ -1,7 +1,7 @@
 package org.yanislavcore.crawler.stream
 
 import org.apache.flink.api.common.functions.FilterFunction
-import org.yanislavcore.crawler.data.ScheduledUrlData
+import org.yanislavcore.common.data.ScheduledUrlData
 import org.yanislavcore.crawler.service.MetLocallyRepository
 
 /**

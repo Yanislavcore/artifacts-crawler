@@ -6,8 +6,10 @@ import java.util.concurrent.TimeUnit
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
+import org.yanislavcore.common.service.HttpFetchService
+import org.yanislavcore.common.stream.{AsyncUrlFetchFunction, FetchSuccessSplitter}
 import org.yanislavcore.crawler.FlinkHelpers._
-import org.yanislavcore.crawler.service.{AerospikeMetGloballyRepository, CacheMetLocallyRepository, HttpFetchService}
+import org.yanislavcore.crawler.service.{AerospikeMetGloballyRepository, CacheMetLocallyRepository}
 import org.yanislavcore.crawler.stream._
 import pureconfig._
 
@@ -27,7 +29,7 @@ object App {
     //Fetching
     val fetchedStream = AsyncDataStream.unorderedWait(
       scheduledUrlsStream,
-      UrlFetchMapper(HttpFetchService),
+      AsyncUrlFetchFunction(HttpFetchService),
       cfg.fetcher.timeout.toMillis,
       TimeUnit.MILLISECONDS
     )
@@ -37,8 +39,8 @@ object App {
 
     //Unsuccessful
     fetchedStream
-      .getSideOutput(FetchFailedTag)
-      .addSink(kafkaSink(cfg, cfg.quarantineUrlsTopic, FetchFailedUrlsSerializationSchema(cfg.quarantineUrlsTopic)))
+      .getSideOutput(FetchSuccessSplitter.FetchFailedTag)
+      .addSink(kafkaSink(cfg, cfg.quarantineUrlsTopic, FetchFailureSerializationSchema(cfg.quarantineUrlsTopic)))
 
     //Filtering and crawling successful urls
     val notMetLocallyUrls = fetchedStream

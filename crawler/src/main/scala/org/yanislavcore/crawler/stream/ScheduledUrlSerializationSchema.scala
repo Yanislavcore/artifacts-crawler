@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.flink.streaming.connectors.kafka.{KafkaContextAware, KafkaSerializationSchema}
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.yanislavcore.crawler.data.ScheduledUrlData
+import org.yanislavcore.common.data.ScheduledUrlData
 
 
 class ScheduledUrlSerializationSchema(private val topic: String) extends KafkaSerializationSchema[ScheduledUrlData]

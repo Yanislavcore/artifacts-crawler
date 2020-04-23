@@ -1,0 +1,10 @@
+jar {
+    manifest {
+        attributes 'Main-Class': 'org.yanislavcore.fetcher.App'
+    }
+}
+
+dependencies {
+    implementation group: 'net.lingala.zip4j', name: 'zip4j', version: '2.5.2'
+    implementation project(":common")
+}

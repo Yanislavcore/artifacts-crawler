@@ -5,7 +5,7 @@ import org.apache.flink.api.java.typeutils.TypeExtractor.getForClass
 import org.apache.flink.runtime.concurrent.Executors
 import org.apache.flink.streaming.api.scala.async.{AsyncFunction, ResultFuture}
 import org.slf4j.LoggerFactory
-import org.yanislavcore.crawler.data.ScheduledUrlData
+import org.yanislavcore.common.data.ScheduledUrlData
 import org.yanislavcore.crawler.service.MetGloballyRepository
 
 import scala.concurrent.ExecutionContext

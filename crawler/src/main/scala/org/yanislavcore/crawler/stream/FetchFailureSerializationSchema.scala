@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.flink.streaming.connectors.kafka.{KafkaContextAware, KafkaSerializationSchema}
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.yanislavcore.crawler.data.{FailedUrlData, ScheduledUrlData}
+import org.yanislavcore.common.data.FailedUrlData
 
 
-class FetchFailedUrlsSerializationSchema(private val topic: String)
+class FetchFailureSerializationSchema(private val topic: String)
   extends KafkaSerializationSchema[FailedUrlData]
     with KafkaContextAware[FailedUrlData] {
 
@@ -25,8 +25,8 @@ class FetchFailedUrlsSerializationSchema(private val topic: String)
   override def getTargetTopic(element: FailedUrlData): String = topic
 }
 
-object FetchFailedUrlsSerializationSchema {
-  def apply(topic: String): FetchFailedUrlsSerializationSchema = new FetchFailedUrlsSerializationSchema(topic)
+object FetchFailureSerializationSchema {
+  def apply(topic: String): FetchFailureSerializationSchema = new FetchFailureSerializationSchema(topic)
 }
 
 

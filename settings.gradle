@@ -1,3 +1,5 @@
 rootProject.name = 'artifacts_crawler'
 include 'crawler'
+include 'artifacts_fetcher'
+include 'common'
 

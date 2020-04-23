@@ -2,8 +2,8 @@ package org.yanislavcore.crawler.stream
 
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.util.Collector
+import org.yanislavcore.common.data.ScheduledUrlData
 import org.yanislavcore.crawler.{FlinkHelpers, Utils}
-import org.yanislavcore.crawler.data.ScheduledUrlData
 
 /**
  * Checks if url is artifact url.
