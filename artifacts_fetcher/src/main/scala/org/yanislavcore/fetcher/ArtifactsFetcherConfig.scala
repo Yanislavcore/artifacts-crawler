@@ -7,7 +7,8 @@ case class ArtifactsFetcherConfig(fetcher: FetcherConfig,
                                   quarantineArtifactsTopic: String,
                                   maxProducers: Int,
                                   kafkaOptions: Map[String, String],
-                                  unpacker: UnpackerConfig)
+                                  unpacker: UnpackerConfig,
+                                  metadataFile: String)
 
 case class FetcherConfig(threads: Int, timeout: Duration)
 

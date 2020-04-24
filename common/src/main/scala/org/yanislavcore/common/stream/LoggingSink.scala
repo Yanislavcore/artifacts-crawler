@@ -1,4 +1,4 @@
-package org.yanislavcore.fetcher.stream
+package org.yanislavcore.common.stream
 
 import org.apache.flink.streaming.api.functions.sink.SinkFunction
 import org.apache.logging.log4j.LogManager

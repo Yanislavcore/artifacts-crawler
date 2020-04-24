@@ -4,6 +4,7 @@ import java.util.Properties
 import java.util.concurrent.TimeUnit
 
 import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.streaming.api.CheckpointingMode
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
 import org.slf4j.LoggerFactory
@@ -82,7 +83,13 @@ object App {
       .name("ArtifactsSink")
 
 
-    env.execute("Artifacts Fetcher")
+    env.enableCheckpointing(10000, CheckpointingMode.AT_LEAST_ONCE)
+    env.getCheckpointConfig.setMinPauseBetweenCheckpoints(500)
+    env.getCheckpointConfig.setCheckpointTimeout(60000)
+    env.getCheckpointConfig.setTolerableCheckpointFailureNumber(3)
+    env.getCheckpointConfig.setMaxConcurrentCheckpoints(1)
+
+    env.execute("Artifacts Crawler")
   }
 
 

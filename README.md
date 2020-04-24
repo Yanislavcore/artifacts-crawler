@@ -47,6 +47,8 @@ flink run -d -p 4 crawler/build/libs/crawler-0.1-all.jar --config-file "deploy/c
 flink run -d -p 4 artifacts_fetcher/build/libs/artifacts_fetcher-0.1-all.jar --config-file "deploy/artifacts-fetcher-dev.conf"
 # Populate seeds
 echo '{"url":"https://www.apkmirror.com/", "ignoreExternalUrls":true}' | kafka-console-producer.sh --broker-list localhost:9092 --topic scheduledUrls
+# If you want to populate only artifacts:
+cat test-artifacts.txt | kafka-console-producer.sh --broker-list localhost:9092 --topic artifacts
 ```
 
 Unpacked data will be in `$FETCHED_APKS_DIR` (`/tmp/fetched_apks` from example)
