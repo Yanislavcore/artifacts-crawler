@@ -2,7 +2,8 @@ package org.yanislavcore.crawler
 
 import scala.concurrent.duration.Duration
 
-case class CrawlerConfig(kafkaOptions: Map[String, String],
+case class CrawlerConfig(kafkaOptionsConsumer: Map[String, String],
+                         kafkaOptionsProducer: Map[String, String],
                          urlsTopic: String,
                          quarantineUrlsTopic: String,
                          maxProducers: Int,

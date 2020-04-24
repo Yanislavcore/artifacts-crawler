@@ -48,10 +48,9 @@ object App {
       .name("ApkContentTypeSplitter")
 
     //Failed to fetch
-    val failedSink = kafkaSink(cfg, cfg.quarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.quarantineArtifactsTopic))
     fetchedStream
       .getSideOutput(FetchSuccessSplitter.FetchFailedTag)
-      .addSink(failedSink)
+      .addSink(kafkaSink(cfg, cfg.fetchQuarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.fetchQuarantineArtifactsTopic)))
       .name("FetchFailedArtifacts")
 
     //Unpacking and storing successfully fetched artifacts
@@ -68,7 +67,7 @@ object App {
     //Failed to unpack
     unpackedStream
       .getSideOutput(DataUnpackerResultSplitter.UnpackFailedTag)
-      .addSink(failedSink)
+      .addSink(kafkaSink(cfg, cfg.unpackQuarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.unpackQuarantineArtifactsTopic)))
       .name("UnpackFailedArtifacts")
 
     //TODO Just logs metadata. You need to setup your own metadata sink
@@ -86,17 +85,35 @@ object App {
   }
 
   private def kafkaSource(env: StreamExecutionEnvironment, cfg: ArtifactsFetcherConfig): DataStream[ScheduledUrlData] = {
-    val props = getKafkaProps(cfg)
+    val props = kafkaConsumerProps(cfg)
     val schema = new ScheduledUrlDeserializationSchema()
     val source = new FlinkKafkaConsumer(cfg.artifactsTopic, schema, props)
     env.addSource(source)(schema.getProducedType)
   }
 
-  private def getKafkaProps(cfg: ArtifactsFetcherConfig): Properties = {
+  private def kafkaConsumerProps(cfg: ArtifactsFetcherConfig): Properties =
+    kafkaProps(cfg.kafkaOptionsConsumer)
+
+  private def kafkaProps(m: Map[String, String]): Properties = {
     val props = new Properties()
     //Bug in scala with JDK 9+ and putAll(): https://github.com/scala/bug/issues/10418 , workaround:
-    cfg.kafkaOptions.foreach { case (key, value) => props.put(key, value) }
+    m.foreach { case (key, value) => props.put(key, value) }
     props
+  }
+
+  private def kafkaSink[T](cfg: ArtifactsFetcherConfig,
+                           topic: String,
+                           schema: KafkaSerializationSchema[T]): FlinkKafkaProducer[T] = {
+    val props = kafkaProducerProps(cfg)
+    val producer = new FlinkKafkaProducer(
+      topic,
+      schema,
+      props,
+      FlinkKafkaProducer.Semantic.AT_LEAST_ONCE,
+      cfg.maxProducers
+    )
+    producer.setWriteTimestampToKafka(true)
+    producer
   }
 
   @throws[Exception]
@@ -126,18 +143,6 @@ object App {
           .build())
       .build()
 
-  private def kafkaSink[T](cfg: ArtifactsFetcherConfig,
-                           topic: String,
-                           schema: KafkaSerializationSchema[T]): FlinkKafkaProducer[T] = {
-    val props = getKafkaProps(cfg)
-    val producer = new FlinkKafkaProducer(
-      topic,
-      schema,
-      props,
-      FlinkKafkaProducer.Semantic.AT_LEAST_ONCE,
-      cfg.maxProducers
-    )
-    producer.setWriteTimestampToKafka(true)
-    producer
-  }
+  private def kafkaProducerProps(cfg: ArtifactsFetcherConfig): Properties =
+    kafkaProps(cfg.kafkaOptionsProducer)
 }

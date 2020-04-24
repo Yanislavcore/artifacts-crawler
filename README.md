@@ -21,7 +21,9 @@ Is exceeds the site's request rate limit very fast.
 * Distributed artifact storage. Right now fetcher just puts artifacts on file system. HDFS, S3 or some distributed FS 
 should be used.
 * Unpacked APKs metadata collector and storage. Right now Artifacts-fetcher just logs this metadata into file.
-* 
+* `.APKM` (custom Apkmirror format) file format https://github.com/android-police/apkmirror-public/issues/113. 
+There are only one open-source realisation of this format. Unfortunately, I couldn't adopt them, and don't have time
+to implement my own.  
 
 ## Requirements
 
@@ -44,7 +46,7 @@ FETCHED_APKS_DIR=/tmp/fetched_apks docker-compose up -d
 ./gradlew clean test shadowJar
 # Deploy apps to cluster
 flink run -d -p 4 crawler/build/libs/crawler-0.1-all.jar --config-file "deploy/crawler-dev.conf"
-flink run -d -p 4 artifacts_fetcher/build/libs/artifacts_fetcher-0.1-all.jar --config-file "deploy/artifacts-fetcher-dev.conf"
+flink run -d -p 2 artifacts_fetcher/build/libs/artifacts_fetcher-0.1-all.jar --config-file "deploy/artifacts-fetcher-dev.conf"
 # Populate seeds
 echo '{"url":"https://www.apkmirror.com/", "ignoreExternalUrls":true}' | kafka-console-producer.sh --broker-list localhost:9092 --topic scheduledUrls
 # If you want to populate only artifacts:

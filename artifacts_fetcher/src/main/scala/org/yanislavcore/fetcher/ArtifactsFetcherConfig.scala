@@ -4,9 +4,11 @@ import scala.concurrent.duration.Duration
 
 case class ArtifactsFetcherConfig(fetcher: FetcherConfig,
                                   artifactsTopic: String,
-                                  quarantineArtifactsTopic: String,
+                                  fetchQuarantineArtifactsTopic: String,
+                                  unpackQuarantineArtifactsTopic: String,
                                   maxProducers: Int,
-                                  kafkaOptions: Map[String, String],
+                                  kafkaOptionsConsumer: Map[String, String],
+                                  kafkaOptionsProducer: Map[String, String],
                                   unpacker: UnpackerConfig,
                                   metadataFile: String)
 

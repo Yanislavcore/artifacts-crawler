@@ -93,11 +93,24 @@ object App {
   }
 
 
-  def kafkaSource(env: StreamExecutionEnvironment, cfg: CrawlerConfig): DataStream[ScheduledUrlData] = {
-    val props = getKafkaProps(cfg)
+  private def kafkaSource(env: StreamExecutionEnvironment, cfg: CrawlerConfig): DataStream[ScheduledUrlData] = {
+    val props = kafkaConsumerProps(cfg)
     val schema = new ScheduledUrlDeserializationSchema()
-    val source = new FlinkKafkaConsumer(cfg.urlsTopic, schema, props)
+    val source = new FlinkKafkaConsumer(cfg.artifactsTopic, schema, props)
     env.addSource(source)(schema.getProducedType)
+  }
+
+  private def kafkaProducerProps(cfg: CrawlerConfig): Properties =
+    kafkaProps(cfg.kafkaOptionsProducer)
+
+  private def kafkaConsumerProps(cfg: CrawlerConfig): Properties =
+    kafkaProps(cfg.kafkaOptionsConsumer)
+
+  private def kafkaProps(m: Map[String, String]): Properties = {
+    val props = new Properties()
+    //Bug in scala with JDK 9+ and putAll(): https://github.com/scala/bug/issues/10418 , workaround:
+    m.foreach { case (key, value) => props.put(key, value) }
+    props
   }
 
   @throws[Exception]
@@ -116,10 +129,10 @@ object App {
     )
   }
 
-  def kafkaSink[T](cfg: CrawlerConfig,
-                   topic: String,
-                   schema: KafkaSerializationSchema[T]): FlinkKafkaProducer[T] = {
-    val props = getKafkaProps(cfg)
+  private def kafkaSink[T](cfg: CrawlerConfig,
+                           topic: String,
+                           schema: KafkaSerializationSchema[T]): FlinkKafkaProducer[T] = {
+    val props = kafkaProducerProps(cfg)
     val producer = new FlinkKafkaProducer(
       topic,
       schema,
@@ -129,13 +142,6 @@ object App {
     )
     producer.setWriteTimestampToKafka(true)
     producer
-  }
-
-  def getKafkaProps(cfg: CrawlerConfig): Properties = {
-    val props = new Properties()
-    //Bug in scala with JDK 9+ and putAll(): https://github.com/scala/bug/issues/10418 , workaround:
-    cfg.kafkaOptions.foreach { case (key, value) => props.put(key, value) }
-    props
   }
 
 }

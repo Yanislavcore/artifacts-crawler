@@ -17,10 +17,10 @@ class DataUnpackerResultSplitter
                               ctx: ProcessFunction[Either[(ScheduledUrlData, UrlProcessFailure), ArchiveMetadata], ArchiveMetadata]#Context,
                               out: Collector[ArchiveMetadata]): Unit = {
 
-    log.debug("Got msg! {}", value)
     if (value.isRight) {
       out.collect(value.right.get)
     } else {
+      log.warn("Failed to unpack! Data: {}", value)
       val failedData = value.left.get
       ctx.output(
         DataUnpackerResultSplitter.UnpackFailedTag,
