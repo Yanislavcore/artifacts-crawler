@@ -3,7 +3,7 @@ jobmanager.rpc.port: 6123
 jobmanager.heap.size: 2024m
 
 taskmanager.memory.process.size: 4096m
-taskmanager.numberOfTaskSlots: 4
+taskmanager.numberOfTaskSlots: 8
 taskmanager.memory.framework.heap.size: 256m
 taskmanager.memory.framework.off-heap.size: 256m
 taskmanager.memory.jvm-metaspace.size: 512m

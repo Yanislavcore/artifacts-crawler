@@ -82,7 +82,7 @@ object App {
       .name("ArtifactsSink")
 
 
-    env.execute("Artifacts crawler")
+    env.execute("Artifacts Fetcher")
   }
 
 

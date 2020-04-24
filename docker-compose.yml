@@ -1,21 +1,29 @@
 version: '3.6'
+networks:
+  cluster:
 services:
   aerospike:
+    networks:
+      - cluster
     image: "aerospike/aerospike-server:4.9.0.5"
     environment:
       NAMESPACE: dev
     expose:
       - "3000"
   kafka:
+    networks:
+      - cluster
     image: "spotify/kafka"
     environment:
-      ADVERTISED_HOST: kafka
+      ADVERTISED_HOST: "kafka"
       ADVERTISED_PORT: 9092
     expose:
       - "9092"
     ports:
       - "127.0.0.1:9092:9092"
   flink-jobmanager:
+    networks:
+      - cluster
     image: "flink:1.10.0-scala_2.12"
     expose:
       - "6123"
@@ -26,6 +34,8 @@ services:
       - "./deploy/flink-jobmanager-dev.yaml:/opt/flink/conf/flink-conf.yaml"
 
   flink-taskmanager:
+    networks:
+      - cluster
     image: "flink:1.10.0-scala_2.12"
     expose:
       - "6121"
@@ -37,8 +47,7 @@ services:
     command: taskmanager
     volumes:
       - "./deploy/flink-taskmanager-dev.yaml:/opt/flink/conf/flink-conf.yaml"
-      - "./deploy/artifacts-fetcher-dev.conf:/opt/streams/artifacts-fetcher.conf"
-      - "./deploy/crawler-dev.conf:/opt/streams/crawler.conf"
+      - "${FETCHED_APKS_DIR}:/tmp/fetched_apks/"
 
 
 
