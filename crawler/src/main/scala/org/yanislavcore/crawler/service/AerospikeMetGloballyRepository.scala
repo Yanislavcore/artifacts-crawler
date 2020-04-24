@@ -1,34 +1,30 @@
 package org.yanislavcore.crawler.service
 
 import com.aerospike.client._
-import com.aerospike.client.async.{NettyEventLoops, NioEventLoops}
+import com.aerospike.client.async.NioEventLoops
 import com.aerospike.client.listener.RecordListener
 import com.aerospike.client.policy.ClientPolicy
-import com.typesafe.config.ConfigFactory
-import io.netty.channel.epoll.EpollEventLoopGroup
-import io.netty.channel.nio.NioEventLoopGroup
+import org.yanislavcore.crawler.CrawlerConfig
 
 import scala.concurrent.{Future, Promise}
 
 
-object AerospikeMetGloballyRepository extends MetGloballyRepository {
+class AerospikeMetGloballyRepository(private val cfg: CrawlerConfig) extends MetGloballyRepository {
 
-  private lazy val cfg = ConfigFactory.load().getConfig("cluster-cache")
-  private lazy val eventLoops = new NioEventLoops(cfg.getInt("threads"))
+  private lazy val eventLoops = new NioEventLoops(cfg.clusterCache.threads)
   private lazy val as: AerospikeClient = {
-
     val p = new ClientPolicy()
     //TODO share event loops with HTTP client
     p.eventLoops = eventLoops
-    p.writePolicyDefault.expiration = cfg.getDuration("expire-after").toSeconds.toInt
-    val timeout = cfg.getDuration("timeout").toMillis.toInt
+    p.writePolicyDefault.expiration = cfg.clusterCache.expireAfter.toSeconds.toInt
+    val timeout = cfg.clusterCache.timeout.toMillis.toInt
     p.writePolicyDefault.totalTimeout = timeout
     p.readPolicyDefault.totalTimeout = timeout
-    val hosts = Host.parseHosts(cfg.getString("hosts"), 3000)
+    val hosts = Host.parseHosts(cfg.clusterCache.hosts, 3000)
     new AerospikeClient(p, hosts: _*)
   }
-  private lazy val ns = cfg.getString("ns")
-  private lazy val set = cfg.getString("set")
+  private lazy val ns = cfg.clusterCache.ns
+  private lazy val set = cfg.clusterCache.set
 
   /**
    * Check if URL is already met and puts it again
@@ -50,4 +46,8 @@ object AerospikeMetGloballyRepository extends MetGloballyRepository {
 
     promise.future
   }
+}
+
+object AerospikeMetGloballyRepository {
+  def apply(cfg: CrawlerConfig): AerospikeMetGloballyRepository = new AerospikeMetGloballyRepository(cfg)
 }

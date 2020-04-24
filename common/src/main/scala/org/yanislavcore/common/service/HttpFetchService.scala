@@ -5,17 +5,18 @@ import java.util.concurrent.{Executor, ThreadLocalRandom}
 
 import com.google.common.base.Charsets
 import com.google.common.io.Resources
-import com.typesafe.config.ConfigFactory
 import org.asynchttpclient.Dsl.{asyncHttpClient, config}
 import org.asynchttpclient.{AsyncHttpClient, RequestBuilder}
 import org.yanislavcore.common.data.FetchedData
 
+import scala.concurrent.duration.Duration
 import scala.concurrent.{Future, Promise}
 
 /**
  * As long as we need to create only one client per JVM, this class encapsulates http client inside lazy field.
  */
-object HttpFetchService extends FetchService {
+class HttpFetchService(private val threads: Int,
+                       private val timeout: Duration) extends FetchService {
 
   //noinspection UnstableApiUsage
   private lazy val uaPool: util.ArrayList[String] = {
@@ -24,18 +25,11 @@ object HttpFetchService extends FetchService {
     new util.ArrayList[String](lines)
   }
   private lazy val poolSize = uaPool.size()
-
-  private def nextUserAgent(): String = {
-    val nextElement = ThreadLocalRandom.current().nextInt(0, poolSize)
-    uaPool.get(nextElement)
-  }
-
   private lazy val client: AsyncHttpClient = {
-    val cfg = ConfigFactory.load().getConfig("fetcher")
     val clientCfg = config()
       .setFollowRedirect(true)
-      .setIoThreadsCount(cfg.getInt("threads"))
-      .setRequestTimeout(cfg.getDuration("timeout").toMillis.toInt)
+      .setIoThreadsCount(threads)
+      .setRequestTimeout(timeout.toMillis.toInt)
     asyncHttpClient(clientCfg)
   }
 
@@ -61,4 +55,13 @@ object HttpFetchService extends FetchService {
     }, ex)
     promise.future
   }
+
+  private def nextUserAgent(): String = {
+    val nextElement = ThreadLocalRandom.current().nextInt(0, poolSize)
+    uaPool.get(nextElement)
+  }
+}
+
+object HttpFetchService {
+  def apply(threads: Int, timeout: Duration): HttpFetchService = new HttpFetchService(threads, timeout)
 }

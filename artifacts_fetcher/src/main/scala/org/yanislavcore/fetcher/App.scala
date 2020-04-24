@@ -3,6 +3,8 @@ package org.yanislavcore.fetcher
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
+import javax.annotation.Nullable
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
 import org.slf4j.LoggerFactory
@@ -21,15 +23,17 @@ object App {
 
   @throws[Exception]
   def main(args: Array[String]): Unit = {
+    val configPath = ParameterTool.fromArgs(args).get("config-file")
+
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val cfg = parseConfig
+    val cfg = parseConfig(configPath)
 
     val source = kafkaSource(env, cfg)
       .name("ArtifactUrlsConsumer")
 
     val fetchedStream = AsyncDataStream.unorderedWait(
       source,
-      AsyncUrlFetchFunction(HttpFetchService),
+      AsyncUrlFetchFunction(HttpFetchService(cfg.fetcher.threads, cfg.fetcher.timeout)),
       cfg.fetcher.timeout.toMillis,
       TimeUnit.MILLISECONDS
     )
@@ -42,7 +46,7 @@ object App {
     //Unpacking and storing successfully fetched artifacts
     val unpackedStream = AsyncDataStream.unorderedWait(
       fetchedStream,
-      AsyncDataUnpackerFunction(cfg, FileWriterServiceImpl, UnzipServiceImpl, IoExecutorServiceHolder),
+      AsyncDataUnpackerFunction(cfg, FileWriterServiceImpl, UnzipServiceImpl, IoExecutorServiceHolder(cfg)),
       cfg.unpacker.timeout.toMillis,
       TimeUnit.MILLISECONDS
     )
@@ -86,9 +90,16 @@ object App {
   }
 
   @throws[Exception]
-  def parseConfig: ArtifactsFetcherConfig = {
+  def parseConfig(@Nullable cfgPath: String): ArtifactsFetcherConfig = {
     import pureconfig.generic.auto._
-    ConfigSource.default.load[ArtifactsFetcherConfig].fold(
+    val loader = if (cfgPath != null) {
+      log.info("Loading config from {}", cfgPath)
+      ConfigSource.file(cfgPath)
+    } else {
+      log.warn("Using classpath config")
+      ConfigSource.default
+    }
+    loader.load[ArtifactsFetcherConfig].fold(
       e => throw new RuntimeException("Failed to parse config. Failures: " ++ e.prettyPrint()),
       cfg => cfg
     )

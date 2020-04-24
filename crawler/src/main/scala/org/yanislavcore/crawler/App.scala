@@ -3,8 +3,10 @@ package org.yanislavcore.crawler
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
+import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.scala.{AsyncDataStream, DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer, FlinkKafkaProducer, KafkaSerializationSchema}
+import org.slf4j.LoggerFactory
 import org.yanislavcore.common.data.ScheduledUrlData
 import org.yanislavcore.common.service.HttpFetchService
 import org.yanislavcore.common.stream.{AsyncUrlFetchFunction, FetchFailureSerializationSchema, FetchSuccessSplitter, ScheduledUrlDeserializationSchema}
@@ -15,10 +17,14 @@ import pureconfig._
 
 object App {
 
+  private val log = LoggerFactory.getLogger(classOf[App])
+
   @throws[Exception]
   def main(args: Array[String]): Unit = {
+    val configPath = ParameterTool.fromArgs(args).get("config-file")
+
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val cfg = parseConfig
+    val cfg = parseConfig(configPath)
 
     //Reading from Kafka
     val scheduledUrlsStream = kafkaSource(env, cfg)
@@ -27,7 +33,7 @@ object App {
     //Fetching
     val fetchedStream = AsyncDataStream.unorderedWait(
       scheduledUrlsStream,
-      AsyncUrlFetchFunction(HttpFetchService),
+      AsyncUrlFetchFunction(HttpFetchService(cfg.fetcher.threads, cfg.fetcher.timeout)),
       cfg.fetcher.timeout.toMillis,
       TimeUnit.MILLISECONDS
     )
@@ -45,13 +51,13 @@ object App {
       .flatMap(UrlsCollector(cfg))
       .name("UrlsCollect")
       //Filtering already met locally
-      .filter(LocalCacheFilter(CacheMetLocallyRepository))
+      .filter(LocalCacheFilter(CacheMetLocallyRepository(cfg)))
       .name("LocalCacheFilter")
 
     //Filtering on cluster
     val notMetUrls = AsyncDataStream.unorderedWait(
       notMetLocallyUrls,
-      MetGloballyChecker(AerospikeMetGloballyRepository),
+      MetGloballyChecker(AerospikeMetGloballyRepository(cfg)),
       cfg.clusterCache.timeout.toMillis,
       TimeUnit.MILLISECONDS,
     )
@@ -88,9 +94,16 @@ object App {
   }
 
   @throws[Exception]
-  def parseConfig: CrawlerConfig = {
+  def parseConfig(cfgPath: String): CrawlerConfig = {
     import pureconfig.generic.auto._
-    ConfigSource.default.load[CrawlerConfig].fold(
+    val loader = if (cfgPath != null) {
+      log.info("Loading config from {}", cfgPath)
+      ConfigSource.file(cfgPath)
+    } else {
+      log.warn("Using classpath config")
+      ConfigSource.default
+    }
+    loader.load[CrawlerConfig].fold(
       e => throw new RuntimeException("Failed to parse config. Failures: " ++ e.prettyPrint()),
       cfg => cfg
     )

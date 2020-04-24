@@ -2,13 +2,16 @@ package org.yanislavcore.fetcher.service
 
 import java.util.concurrent.{ExecutorService, Executors}
 
-import com.typesafe.config.ConfigFactory
+import org.yanislavcore.fetcher.ArtifactsFetcherConfig
 
-object IoExecutorServiceHolder extends ExecutorServiceHolder {
+class IoExecutorServiceHolder(cfg: ArtifactsFetcherConfig) extends ExecutorServiceHolder {
   private lazy val es = {
-    val threadsNumber = ConfigFactory.load().getInt("unpacker.file-io-threads")
-    Executors.newFixedThreadPool(threadsNumber)
+    Executors.newFixedThreadPool(cfg.unpacker.fileIoThreads)
   }
 
   override def getExecutorService: ExecutorService = es
+}
+
+object IoExecutorServiceHolder {
+  def apply(cfg: ArtifactsFetcherConfig): IoExecutorServiceHolder = new IoExecutorServiceHolder(cfg)
 }
