@@ -2,11 +2,11 @@ jobmanager.rpc.address: flink-jobmanager
 jobmanager.rpc.port: 6123
 jobmanager.heap.size: 2024m
 
-taskmanager.memory.process.size: 4096m
+taskmanager.memory.process.size: 8192m
 taskmanager.numberOfTaskSlots: 8
-taskmanager.memory.framework.heap.size: 256m
-taskmanager.memory.framework.off-heap.size: 256m
-taskmanager.memory.jvm-metaspace.size: 512m
+taskmanager.memory.framework.heap.size: 512m
+taskmanager.memory.framework.off-heap.size: 512m
+taskmanager.memory.jvm-metaspace.size: 1024m
 
 parallelism.default: 2
 jobmanager.execution.failover-strategy: region

@@ -23,10 +23,15 @@ class AsyncDataUnpackerFunction(private val cfg: ArtifactsFetcherConfig,
   private val unpackerCfg = cfg.unpacker
 
   override def asyncInvoke(input: (ScheduledUrlData, FetchedData),
-                           resultFuture: ResultFuture[Either[(ScheduledUrlData, UrlProcessFailure), ArchiveMetadata]]): Unit =
-    esHolder.getExecutorService.execute { () =>
-      resultFuture complete Iterable(tryUnpack(input._1, input._2))
+                           resultFuture: ResultFuture[Either[(ScheduledUrlData, UrlProcessFailure), ArchiveMetadata]]): Unit = {
+    if (!input._2.contentType.equalsIgnoreCase(AsyncDataUnpackerFunction.ApkMimeType)) {
+      resultFuture complete Iterable(Left(input._1, UrlProcessFailure("Wrong content type: " + input._2.contentType)))
+    } else {
+      esHolder.getExecutorService.execute { () =>
+        resultFuture complete Iterable(tryUnpack(input._1, input._2))
+      }
     }
+  }
 
   private def tryUnpack(url: ScheduledUrlData,
                         fetched: FetchedData): Either[(ScheduledUrlData, UrlProcessFailure), ArchiveMetadata] =
@@ -51,6 +56,7 @@ class AsyncDataUnpackerFunction(private val cfg: ArtifactsFetcherConfig,
 }
 
 object AsyncDataUnpackerFunction {
+  val ApkMimeType = "application/vnd.android.package-archive"
   def apply(cfg: ArtifactsFetcherConfig,
             writer: FileWriterService,
             unzipService: UnzipService, esHolder: ExecutorServiceHolder): AsyncDataUnpackerFunction =

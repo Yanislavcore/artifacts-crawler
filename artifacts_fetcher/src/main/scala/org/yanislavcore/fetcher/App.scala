@@ -18,7 +18,7 @@ import org.yanislavcore.common.stream._
 import org.yanislavcore.fetcher.FlinkHelpers._
 import org.yanislavcore.fetcher.data.ArchiveMetadata
 import org.yanislavcore.fetcher.service.{FileWriterServiceImpl, IoExecutorServiceHolder, UnzipServiceImpl}
-import org.yanislavcore.fetcher.stream.{ApkContentTypeSplitter, AsyncDataUnpackerFunction, DataUnpackerResultSplitter}
+import org.yanislavcore.fetcher.stream.{AsyncDataUnpackerFunction, DataUnpackerResultSplitter}
 import pureconfig.ConfigSource
 
 object App {
@@ -35,6 +35,18 @@ object App {
     val source = kafkaSource(env, cfg)
       .name("ArtifactUrlsConsumer")
 
+    val fetchFailedSink = kafkaSink(
+      cfg,
+      cfg.fetchQuarantineArtifactsTopic,
+      FetchFailureSerializationSchema(cfg.fetchQuarantineArtifactsTopic)
+    )
+
+    val unpackFailedSink = kafkaSink(
+      cfg,
+      cfg.unpackQuarantineArtifactsTopic,
+      FetchFailureSerializationSchema(cfg.unpackQuarantineArtifactsTopic)
+    )
+
     val fetchedStream = AsyncDataStream.unorderedWait(
       source,
       AsyncUrlFetchFunction(HttpFetchService(cfg.fetcher.threads, cfg.fetcher.timeout)),
@@ -44,13 +56,11 @@ object App {
       .name("DataFetcher")
       .process(FetchSuccessSplitter())
       .name("FetchSuccessSplitter")
-      .process(ApkContentTypeSplitter())
-      .name("ApkContentTypeSplitter")
 
     //Failed to fetch
     fetchedStream
       .getSideOutput(FetchSuccessSplitter.FetchFailedTag)
-      .addSink(kafkaSink(cfg, cfg.fetchQuarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.fetchQuarantineArtifactsTopic)))
+      .addSink(fetchFailedSink)
       .name("FetchFailedArtifacts")
 
     //Unpacking and storing successfully fetched artifacts
@@ -67,7 +77,7 @@ object App {
     //Failed to unpack
     unpackedStream
       .getSideOutput(DataUnpackerResultSplitter.UnpackFailedTag)
-      .addSink(kafkaSink(cfg, cfg.unpackQuarantineArtifactsTopic, FetchFailureSerializationSchema(cfg.unpackQuarantineArtifactsTopic)))
+      .addSink(unpackFailedSink)
       .name("UnpackFailedArtifacts")
 
     //TODO Just logs metadata. You need to setup your own metadata sink
