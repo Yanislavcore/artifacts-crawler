@@ -23,6 +23,8 @@ New found non-artifact links are added to `scheduledUrls` topic.
 Artifact links are added to `artifact` topic.
 Failed to fetch links are added to `quarantineUrls`.
 
+Also it uses Aerospike as cache for already met urls.
+
 ### `artifacts_fetcher`
 
 Fetches, unpacks and writes to filesystem artifacts (and metadata) from `artifact` topic.
