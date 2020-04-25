@@ -47,7 +47,7 @@ services:
     command: taskmanager
     volumes:
       - "./deploy/flink-taskmanager-dev.yaml:/opt/flink/conf/flink-conf.yaml"
-      - "${FETCHED_APKS_DIR}:/opt/flink/data/fetched_apks"
+      - "${FETCHED_APKS_DIR}:/opt/flink/data/"
 
 
 

@@ -45,8 +45,9 @@ Clone repo and run inside it:
 ```shell script
 # Set up a cluster
 export FETCHED_APKS_DIR=/tmp/fetched_apks
-mkdir -p $FETCHED_APKS_DIR && chmod -R 766 $FETCHED_APKS_DIR
-docker-compose up -d
+# Flink gid:uid
+mkdir -p $FETCHED_APKS_DIR && sudo chown 9999:9999 $FETCHED_APKS_DIR && sudo chmod -R 777 $FETCHED_APKS_DIR
+docker-compose up -d --build
 # Build apps
 ./gradlew clean test shadowJar
 # Deploy apps to cluster
