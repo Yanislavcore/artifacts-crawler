@@ -96,7 +96,7 @@ object App {
   private def kafkaSource(env: StreamExecutionEnvironment, cfg: CrawlerConfig): DataStream[ScheduledUrlData] = {
     val props = kafkaConsumerProps(cfg)
     val schema = new ScheduledUrlDeserializationSchema()
-    val source = new FlinkKafkaConsumer(cfg.artifactsTopic, schema, props)
+    val source = new FlinkKafkaConsumer(cfg.urlsTopic, schema, props)
     env.addSource(source)(schema.getProducedType)
   }
 

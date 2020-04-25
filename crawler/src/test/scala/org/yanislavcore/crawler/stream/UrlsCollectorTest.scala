@@ -24,7 +24,7 @@ class UrlsCollectorTest extends AnyFlatSpec with Matchers with MockFactory {
       |""".stripMargin
 
   "UrlsCollector" should "ignore png extension and other domains if set so" in {
-    val s = UrlsCollector(CrawlerConfig(null, null, null, 0, null, null, List("png"), null, null))
+    val s = UrlsCollector(CrawlerConfig(null, null, null, null, 0, null, null, List("png"), null, null))
     val collectorMock = mock[Collector[ScheduledUrlData]]
     inAnyOrder {
       List(
@@ -44,7 +44,7 @@ class UrlsCollectorTest extends AnyFlatSpec with Matchers with MockFactory {
   }
 
   it should "include png extension and other domains if set so" in {
-    val s = UrlsCollector(CrawlerConfig(null, null, null, 0, null, null, List(), null, null))
+    val s = UrlsCollector(CrawlerConfig(null, null, null, null, 0, null, null, List(), null, null))
     val collectorMock = mock[Collector[ScheduledUrlData]]
     inAnyOrder {
       List(
@@ -67,7 +67,7 @@ class UrlsCollectorTest extends AnyFlatSpec with Matchers with MockFactory {
   }
 
   it should "include png only extension if set so" in {
-    val s = UrlsCollector(CrawlerConfig(null, null, null, 0, null, null, List("html"), null, null))
+    val s = UrlsCollector(CrawlerConfig(null, null, null, null, 0, null, null, List("html"), null, null))
     val collectorMock = mock[Collector[ScheduledUrlData]]
     inAnyOrder {
       List(

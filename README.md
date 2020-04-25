@@ -23,7 +23,10 @@ should be used.
 * Unpacked APKs metadata collector and storage. Right now Artifacts-fetcher just logs this metadata into file.
 * `.APKM` (custom Apkmirror format) file format https://github.com/android-police/apkmirror-public/issues/113. 
 There are only one open-source realisation of this format. Unfortunately, I couldn't adopt them, and don't have time
-to implement my own.  
+to implement it on my own.
+* Integration tests
+* Metrics
+* Many optimizations
 
 ## Requirements
 
@@ -41,7 +44,9 @@ Clone repo and run inside it:
 
 ```shell script
 # Set up a cluster
-FETCHED_APKS_DIR=/tmp/fetched_apks docker-compose up -d
+export FETCHED_APKS_DIR=/tmp/fetched_apks
+mkdir -p $FETCHED_APKS_DIR && chmod -R 766 $FETCHED_APKS_DIR
+docker-compose up -d
 # Build apps
 ./gradlew clean test shadowJar
 # Deploy apps to cluster
