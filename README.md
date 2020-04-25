@@ -12,10 +12,28 @@ Apache Kafka is used as a distributed message queue and Aerospike is used as a d
 
 Despite the fact that the crawler can only collect artifacts from one site, it can be easily adapted to collect any data.
 
+## Architecture
+
+Crawler consists of 2 streaming apps/modules + common module :
+
+### `crawler` 
+
+It performs recursive crawling of pages from `scheduledUrls` topic. 
+New found non-artifact links are added to `scheduledUrls` topic. 
+Artifact links are added to `artifact` topic.
+Failed to fetch links are added to `quarantineUrls`.
+
+### `artifacts_fetcher`
+
+Fetches, unpacks and writes to filesystem artifacts (and metadata) from `artifact` topic.
+Failed to fetch urls are streamed to `fetchQuarantineArtifacts`.
+Failed to unpack artifacts (their urls) are streamed to `unpackQuarantineArtifacts`. 
+
 ## TODO
 
 The crawler is fully functional, but this is just a test task. Therefore, the following features are missing.
 
+* Error handling policy. Right now it just streams data to `quarantine*` topics in Kafka.
 * Proxy Pool. I don't have access to any proxy pools, therefore system might work very slow. 
 Is exceeds the site's request rate limit very fast.
 * Distributed artifact storage. Right now fetcher just puts artifacts on file system. HDFS, S3 or some distributed FS 
@@ -29,8 +47,6 @@ to implement it on my own.
 * Many optimizations
 
 ## Requirements
-
-Base:
 
 * Docker
 * Docker Compose
@@ -59,7 +75,7 @@ echo '{"url":"https://www.apkmirror.com/", "ignoreExternalUrls":true}' | kafka-c
 cat test-artifacts.txt | kafka-console-producer.sh --broker-list localhost:9092 --topic artifacts
 ```
 
-Unpacked data will be in `$FETCHED_APKS_DIR` (`/tmp/fetched_apks` from example)
+Archived and unpacked `apk`-s and metadata is in `$FETCHED_APKS_DIR` (`/tmp/fetched_apks` from example)
 
 Flink UI is located here: `http://localhost:8081/`
 
