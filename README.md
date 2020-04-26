@@ -61,14 +61,14 @@ Clone repo and run inside it:
 ```shell script
 # Set up a cluster
 export FETCHED_APKS_DIR=/tmp/fetched_apks
-# Flink gid:uid
+# Flink's gid:uid
 mkdir -p $FETCHED_APKS_DIR && sudo chown 9999:9999 $FETCHED_APKS_DIR && sudo chmod -R 777 $FETCHED_APKS_DIR
 docker-compose up -d --build
 # Build apps
 ./gradlew clean test shadowJar
-# Deploy apps to cluster
-flink run -d -p 4 crawler/build/libs/crawler-0.1-all.jar --config-file "deploy/crawler-dev.conf"
-flink run -d -p 2 artifacts_fetcher/build/libs/artifacts_fetcher-0.1-all.jar --config-file "deploy/artifacts-fetcher-dev.conf"
+# Deploy apps to cluster ('-p' stands for for parallelism)
+flink run -d -p 1 crawler/build/libs/crawler-0.1-all.jar --config-file "deploy/crawler-dev.conf"
+flink run -d -p 1 artifacts_fetcher/build/libs/artifacts_fetcher-0.1-all.jar --config-file "deploy/artifacts-fetcher-dev.conf"
 # Populate seeds
 echo '{"url":"https://www.apkmirror.com/", "ignoreExternalUrls":true}' | kafka-console-producer.sh --broker-list localhost:9092 --topic scheduledUrls
 # If you want to populate only artifacts:
